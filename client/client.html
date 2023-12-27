@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <div id="chat">
+        <!-- Chat messages will be appended here -->
+    </div>
+
+    <form id="chatForm">
+        <input type="text" id="messageInput">
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        var ws = new WebSocket('ws://localhost:8080/ws');
+
+        ws.onmessage = function (event) {
+            var chat = document.getElementById('chat');
+            var message = document.createElement('p');
+            message.textContent = event.data;
+            chat.appendChild(message);
+        };
+
+        var form = document.getElementById('chatForm');
+        form.onsubmit = function (event) {
+            event.preventDefault();
+            var input = document.getElementById('messageInput');
+            ws.send(input.value);
+            input.value = '';
+        };
+    </script>
+</body>
+
+</html>
