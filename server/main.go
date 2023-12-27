@@ -3,12 +3,15 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
 
 type User struct {
-	Username string `json:"username"`
+	Username   string `json:"username"`
+	Authorized bool   `json:"authorized"`
 }
 
 type Message struct {
@@ -45,7 +48,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(clients, ws)
 			break
 		}
-		str_message := string(msg)
+		str_message := strings.TrimSpace(string(msg))
 		log.Println(clients[ws].Username + ": " + str_message)
 
 		if str_message[0] == '/' {
@@ -65,21 +68,47 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			} else if len(str_message) >= 6 && str_message[:6] == "/login" {
-				client := clients[ws]
-				client.Username = str_message[6:]
-				clients[ws] = client
 
-				err := ws.WriteMessage(websocket.TextMessage, []byte("Your username is now "+client.Username))
-				if err != nil {
-					ws.Close()
-					delete(clients, ws)
-					return
+				token := strings.Split(str_message, " ")
+				if len(token) != 3 {
+					err := ws.WriteMessage(websocket.TextMessage, []byte("Invalid input"))
+					if err != nil {
+						ws.Close()
+						delete(clients, ws)
+						return
+					}
+				}
+
+				username := token[1]
+				password := token[2]
+
+				for _, user := range db_users {
+					if user.Username == username {
+						if user.Password == password {
+							clients[ws] = User{Username: username, Authorized: true}
+							err := ws.WriteMessage(websocket.TextMessage, []byte("Welcome "+username))
+							if err != nil {
+								ws.Close()
+								delete(clients, ws)
+								return
+							}
+						} else {
+							err := ws.WriteMessage(websocket.TextMessage, []byte("Wrong password"))
+							if err != nil {
+								ws.Close()
+								delete(clients, ws)
+								return
+							}
+						}
+						break
+					}
 				}
 			} else if str_message == "/help" {
 				help_message := []string{
 					"available commands:",
 					"\t/list: list all connected users",
-					"\t/login <username>: change your username",
+					"\t/login <username> <password>: login with username and password",
+					"\t/register <username> <password>: register with username and password",
 					"\t/help: show this help message",
 				}
 				for _, str := range help_message {
@@ -89,6 +118,29 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 						delete(clients, ws)
 						return
 					}
+				}
+			} else if len(str_message) >= 10 && str_message[:9] == "/register" {
+				token := strings.Split(str_message, " ")
+				if len(token) != 3 {
+					err := ws.WriteMessage(websocket.TextMessage, []byte("Invalid input"))
+					if err != nil {
+						ws.Close()
+						delete(clients, ws)
+						return
+					}
+				}
+
+				username := token[1]
+				password := token[2]
+
+				db_users = append(db_users, DB_User{UserID: len(db_users) + 1, Username: username, Password: password, Verified: false})
+
+				clients[ws] = User{Username: username, Authorized: true}
+				err := ws.WriteMessage(websocket.TextMessage, []byte("Welcome "+username))
+				if err != nil {
+					ws.Close()
+					delete(clients, ws)
+					return
 				}
 			} else {
 				err := ws.WriteMessage(websocket.TextMessage, []byte("Unknown command"))
@@ -119,7 +171,18 @@ func handleMessages() {
 }
 
 func main() {
+	PORT := "8080"
+	if os.Getenv("PORT") != "" {
+		PORT = os.Getenv("PORT")
+	}
+	log.Println("Starting server at port " + PORT + "...")
+	log.Println("Users:", db_users)
+
 	http.HandleFunc("/ws", handleConnections)
 	go handleMessages()
-	http.ListenAndServe(":8080", nil)
+
+	err := http.ListenAndServe(":"+PORT, nil)
+	if err != nil {
+		log.Fatal("Error starting server: ", err)
+	}
 }
