@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -15,8 +17,9 @@ type User struct {
 }
 
 type Message struct {
-	Sender  User   `json:"sender"`
-	Message string `json:"message"`
+	Sender  User      `json:"sender"`
+	Message string    `json:"message"`
+	Date    time.Time `json:"date"`
 }
 
 var clients = make(map[*websocket.Conn]User)
@@ -31,16 +34,57 @@ var upgrader = websocket.Upgrader{
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	cookie_token, err := r.Cookie("haechat-token")
+	if err != nil {
+		log.Println("Error getting cookie:", err)
+		return
+	}
+	token := cookie_token.Value
+	if token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		response, err := json.Marshal(map[string]interface{}{
+			"status": "error",
+			"error":  "no token provided",
+		})
+		if err != nil {
+			log.Println("Error encoding json:", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(response)
+		if err != nil {
+			log.Println("Error writing response:", err)
+		}
+		return
+	}
+
+	if token != "DUMMY_TOKEN" {
+		w.WriteHeader(http.StatusUnauthorized)
+		response, err := json.Marshal(map[string]interface{}{
+			"status": "error",
+			"error":  "token is invalid",
+		})
+		if err != nil {
+			log.Println("Error encoding json:", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(response)
+		if err != nil {
+			log.Println("Error writing response:", err)
+		}
+		return
+	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		panic(err)
+		log.Println("Error upgrading connection:", err)
+		return
 	}
-
 	defer ws.Close()
 
-	clients[ws] = User{Username: "Anonymous"}
-
+	clients[ws] = User{}
 	for {
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
@@ -170,19 +214,181 @@ func handleMessages() {
 	}
 }
 
+func login(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		jsonResponse, err := json.Marshal(map[string]interface{}{
+			"status": "error",
+			"error":  "invalid method",
+		})
+		if err != nil {
+			log.Println("Error encoding json:", err)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(jsonResponse)
+		if err != nil {
+			log.Println("Error writing response:", err)
+		}
+		return
+	}
+
+	body := map[string]interface{}{}
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		log.Println("Error decoding json:", err)
+		return
+	}
+
+	username := body["username"].(string)
+	password := body["password"].(string)
+
+	if username == "" || password == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		jsonResponse, err := json.Marshal(map[string]interface{}{
+			"status": "error",
+			"error":  "invalid username or password",
+		})
+		if err != nil {
+			log.Println("Error encoding json:", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(jsonResponse)
+		if err != nil {
+			log.Println("Error writing response:", err)
+		}
+		return
+	}
+
+	for _, user := range db_users {
+		if user.Username == username {
+			if user.Password == password {
+				http.SetCookie(w, &http.Cookie{
+					Name:     "haechat-token",
+					Value:    "DUMMY_TOKEN",
+					Expires:  time.Now().Add(24 * time.Hour),
+					HttpOnly: true,
+					Secure:   true,
+					SameSite: http.SameSiteStrictMode,
+				})
+				w.WriteHeader(http.StatusOK)
+				jsonResponse, err := json.Marshal(map[string]interface{}{
+					"status": "success",
+				})
+				if err != nil {
+					log.Println("Error encoding json:", err)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, err = w.Write(jsonResponse)
+				if err != nil {
+					log.Println("Error writing response:", err)
+				}
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				jsonResponse, err := json.Marshal(map[string]interface{}{
+					"status": "error",
+					"error":  "invalid password",
+				})
+				if err != nil {
+					log.Println("Error encoding json:", err)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, err = w.Write(jsonResponse)
+				if err != nil {
+					log.Println("Error writing response:", err)
+				}
+			}
+			break
+		}
+	}
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+	body := map[string]interface{}{}
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		log.Println("Error decoding json:", err)
+		return
+	}
+
+	username := body["username"].(string)
+	password := body["password"].(string)
+
+	if username == "" || password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		response := map[string]interface{}{
+			"status": "error",
+			"error":  "invalid username or password",
+		}
+		jsonResponse, err := json.Marshal(response)
+		if err != nil {
+			log.Println("Error encoding json:", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(jsonResponse)
+		if err != nil {
+			log.Println("Error writing response:", err)
+		}
+		return
+	}
+
+	for _, user := range db_users {
+		if username == user.Username {
+			response, err := json.Marshal(map[string]interface{}{
+				"status": "error",
+				"error":  "username is taken",
+			})
+			if err != nil {
+				log.Println("Error encoding json:", err)
+				return
+			}
+			w.WriteHeader(http.StatusConflict)
+			w.Header().Set("Content-Type", "application/json")
+			_, err = w.Write(response)
+			if err != nil {
+				log.Println("Error writing response:", err)
+			}
+			break
+		}
+	}
+
+	db_users = append(db_users, DB_User{UserID: len(db_users) + 1, Username: username, Password: password, Verified: false})
+	w.WriteHeader(http.StatusOK)
+	response := map[string]interface{}{
+		"status": "success",
+		"token":  "DUMMY_TOKEN",
+	}
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error encoding json:", err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(jsonResponse)
+	if err != nil {
+		log.Println("Error writing response:", err)
+	}
+}
+
 func main() {
 	PORT := "8080"
 	if os.Getenv("PORT") != "" {
 		PORT = os.Getenv("PORT")
 	}
-	log.Println("Starting server at port " + PORT + "...")
-	log.Println("Users:", db_users)
+	log.Println("Starting server at ", PORT, "...")
 
+	http.HandleFunc("/register", register)
+	http.HandleFunc("/login", login)
 	http.HandleFunc("/ws", handleConnections)
+
 	go handleMessages()
 
 	err := http.ListenAndServe(":"+PORT, nil)
 	if err != nil {
-		log.Fatal("Error starting server: ", err)
+		log.Fatal("Error starting server:", err)
 	}
 }
