@@ -152,3 +152,31 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		"status": "success",
 	})
 }
+
+func selfUsername(w http.ResponseWriter, r *http.Request) {
+	cookie_token, err := r.Cookie("haechat-token")
+	if err != nil {
+		log.Println("Error getting cookie in selfUsername:", err)
+		return
+	}
+	token := cookie_token.Value
+	if token == "" {
+		SendJson(w, http.StatusBadRequest, map[string]interface{}{
+			"status": "error",
+			"error":  "empty token",
+		})
+		return
+	}
+	username := verifyToken(token)
+	if username == "" {
+		SendJson(w, http.StatusUnauthorized, map[string]interface{}{
+			"status": "error",
+			"error":  "invalid token",
+		})
+		return
+	}
+	SendJson(w, http.StatusOK, map[string]interface{}{
+		"status":   "success",
+		"username": username,
+	})
+}

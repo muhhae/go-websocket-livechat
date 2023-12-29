@@ -17,6 +17,7 @@ func main() {
 	MyHttpHandle("/login", login, cors)
 	MyHttpHandle("/ws", handleConnections)
 	MyHttpHandle("/logout", logout, cors)
+	MyHttpHandle("/self", selfUsername, cors)
 
 	go handleMessages()
 
