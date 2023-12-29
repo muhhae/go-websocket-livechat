@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 
+<head>
+    <title>Chat</title>
+    <meta charset="utf-8" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
 <body>
     <div id="chat">
         <!-- Chat messages will be appended here -->
@@ -16,9 +23,23 @@
 
         ws.onmessage = function (event) {
             var chat = document.getElementById('chat');
-            var message = document.createElement('p');
-            message.textContent = event.data;
-            chat.appendChild(message);
+            data = JSON.parse(event.data)
+            var date = new Date(data.date);
+
+            hour = date.getHours();
+            minute = date.getMinutes();
+
+            chat.innerHTML +=
+                `<div class="chat chat-start">
+                <div class="chat-header">
+                    ${data.sender.username}
+                    <time class="text-xs opacity-50">${hour}:${minute}</time>
+                </div>
+                <div class="chat-bubble">${data.message}</div>
+                <div class="chat-footer opacity-50">
+                    Seen
+                </div>
+                </div>`
         };
 
         var form = document.getElementById('chatForm');
