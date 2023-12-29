@@ -9,13 +9,18 @@ type DB_User struct {
 
 var db_users = []DB_User{
 	{
-		UserID: 1,
+		UserID:   1,
 		Username: "admin",
 		Password: "admin",
 	},
 	{
-		UserID: 2,
+		UserID:   2,
 		Username: "user",
 		Password: "user",
+	},
+	{
+		UserID:   3,
+		Username: "test",
+		Password: "test",
 	},
 }
