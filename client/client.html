@@ -76,7 +76,8 @@
                 })
             }
 
-            var ws = new WebSocket('ws://' + API_URL + '/ws');
+            var wssUrl = API_URL.replace('https://', 'wss://');
+            var ws = new WebSocket(wssUrl + '/ws');
 
             ws.addEventListener('open', function (event) {
                 var body = document.getElementById('body-container');
