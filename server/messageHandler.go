@@ -34,16 +34,20 @@ var upgrader = websocket.Upgrader{
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(1 * time.Second)
 	cookie_token, err := r.Cookie("haechat-token")
 	if err != nil {
-		log.Println("Error getting cookie:", err)
+		SendJson(w, http.StatusBadRequest, map[string]interface{}{
+			"status": "error",
+			"error":  "Bad Credentials",
+		})
 		return
 	}
 	token := cookie_token.Value
 	if token == "" {
 		SendJson(w, http.StatusBadRequest, map[string]interface{}{
 			"status": "error",
-			"error":  "empty token",
+			"error":  "Bad Credentials",
 		})
 		return
 	}
@@ -51,15 +55,19 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	if username == "" {
 		SendJson(w, http.StatusUnauthorized, map[string]interface{}{
 			"status": "error",
-			"error":  "invalid token",
+			"error":  "invalid Credentials",
 		})
 		return
 	}
-	
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		log.Println("Error upgrading connection:", err)
+		SendJson(w, http.StatusInternalServerError, map[string]interface{}{
+			"status": "error",
+			"error":  "Internal Server Error",
+		})
 		return
 	}
 	defer ws.Close()

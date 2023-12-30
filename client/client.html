@@ -6,37 +6,101 @@
     <meta charset="utf-8" />
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-    <div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-900 py-6 sm:py-12">
-        <div class="rounded-md min-h-[90vh] relative flex flex-col bg-gray-700 p-4 shadow-xl ring-1 ring-gray-900/5 
-            mx-8 sm:mx-auto sm:w-[60vh] h-[75vh]">
-            <div id="chat-container"
-                class="p-4 overflow-y-auto scrollbar scrollbar-hide flex flex-col bg-gray-600 flex-grow rounded-md">
-                <div id="chat" class="flex flex-col flex-grow justify-end"> </div>
-            </div>
-            <form id="chatForm" class="flex mt-4">
-                <input type="text" placeholder="Your message" class="input 
-                input-bordered w-full placeholder-white" id="messageInput" />
-                <button class="btn ml-2 text-white border-0 ">Send</button>
-            </form>
+    <div id="body-container" class="h-screen">
+        <div class="w-full h-full flex items-center justify-center">
+            <span class="loading loading-dots loading-lg"></span>
         </div>
     </div>
 
+    <template id="chat-container-template">
+        <div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-900">
+            <div class="rounded-2xl min-h-[90vh] relative flex flex-col bg-gray-700 p-4 shadow-xl ring-1 ring-gray-900/5 
+                        mx-8 sm:mx-auto sm:w-[60vh] h-[75vh]">
+                <div id="chat-container"
+                    class="p-4 overflow-y-auto scrollbar scrollbar-hide flex flex-col bg-gray-600 flex-grow rounded-2xl">
+                    <div id="chat" class="flex flex-col flex-grow justify-end"> </div>
+                </div>
+                <form id="chatForm" class="flex mt-4">
+                    <input type="text" placeholder="Your message" class="input 
+                            input-bordered w-full" id="messageInput" />
+                    <button class="btn ml-2 border-0 ">Send</button>
+                </form>
+            </div>
+        </div>
+    </template>
 
     <script>
+        const API_URL = 'http://localhost:8080';
+
         async function getUserData() {
-            const response = await fetch('http://localhost:8080/self', {
-                method: 'GET',
-                credentials: 'include',
-            })
-            const user = await response.json();
-            return user;
+            try {
+                const response = await fetch(API_URL + '/self', {
+                    method: 'GET',
+                    credentials: 'include',
+                })
+                const user = await response.json();
+                return user;
+            }
+            catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Something went wrong! Please try again later.',
+                }).then((result) => {
+                    window.location.reload();
+                })
+            }
         }
 
         getUserData().then(user => {
+            if (user.status == "error") {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: user.error,
+                    confirmButtonText: 'Back to login'
+                }).then((result) => {
+                    window.location.href = "/login.html";
+                })
+            }
+
             var ws = new WebSocket('ws://localhost:8080/ws');
+
+            ws.addEventListener('open', function (event) {
+                var body = document.getElementById('body-container');
+                body.innerHTML = document.getElementById('chat-container-template').innerHTML;
+                var form = document.getElementById('chatForm');
+                form.onsubmit = function (event) {
+                    event.preventDefault();
+                    var input = document.getElementById('messageInput');
+                    ws.send(input.value);
+                    input.value = '';
+                };
+            });
+
+            ws.addEventListener('close', function (event) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Something went wrong!',
+                }).then((result) => {
+                    window.location.reload();
+                })
+            });
+
+            ws.addEventListener('error', function (event) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Something went wrong!',
+                }).then((result) => {
+                    window.location.reload();
+                })
+            });
 
             ws.onmessage = function (event) {
                 var username = user.username;
@@ -66,15 +130,7 @@
                 chatcontainer = document.getElementById('chat-container');
                 chatcontainer.scrollTop = chat.scrollHeight;
             };
-
-            var form = document.getElementById('chatForm');
-            form.onsubmit = function (event) {
-                event.preventDefault();
-                var input = document.getElementById('messageInput');
-                ws.send(input.value);
-                input.value = '';
-            };
-        }).catch(error => console.error('Error:', error));
+        })
 
     </script>
 </body>

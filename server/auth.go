@@ -156,14 +156,17 @@ func logout(w http.ResponseWriter, r *http.Request) {
 func selfUsername(w http.ResponseWriter, r *http.Request) {
 	cookie_token, err := r.Cookie("haechat-token")
 	if err != nil {
-		log.Println("Error getting cookie in selfUsername:", err)
+		SendJson(w, http.StatusBadRequest, map[string]interface{}{
+			"status": "error",
+			"error":  "Bad Credentials",
+		})
 		return
 	}
 	token := cookie_token.Value
 	if token == "" {
 		SendJson(w, http.StatusBadRequest, map[string]interface{}{
 			"status": "error",
-			"error":  "empty token",
+			"error":  "Bad Credentials",
 		})
 		return
 	}
@@ -171,7 +174,7 @@ func selfUsername(w http.ResponseWriter, r *http.Request) {
 	if username == "" {
 		SendJson(w, http.StatusUnauthorized, map[string]interface{}{
 			"status": "error",
-			"error":  "invalid token",
+			"error":  "Invalid Credentials",
 		})
 		return
 	}
