@@ -43,7 +43,7 @@
             return document.querySelector('.swal2-popup') !== null;
         }
         var CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {};
-        var API_URL = CONFIG.API_URL || 'http://localhost:8080';
+        var API_URL = CONFIG.API_URL || 'https://hae-chat-api.fly.dev';
         async function getUserData() {
             try {
                 const response = await fetch(API_URL + '/self', {
