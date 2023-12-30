@@ -44,8 +44,10 @@
                             <a href="#" class="label-text-alt link link-hover">Forgot password?</a>
                         </label>
                     </div>
-                    <div class="form-control mt-6">
+                    <div id="login-button-container" class="form-control mt-6">
                         <button id="login-button" class="btn btn-primary">Login</button>
+                        <span id="login-button-loading" class="mx-auto loading loading-lg hidden"></span>
+
                     </div>
                 </form>
             </div>
@@ -76,12 +78,16 @@
             popup: 'bg-base-200'
         },
     })
-    const API_URL = CONFIG.API_URL;
+    const API_URL = CONFIG.API_URL !== undefined ? CONFIG.API_URL : 'http://localhost:8080';
     const input_username = document.querySelector('#input-username');
     const login_button = document.querySelector('#login-button');
+    const login_button_loading = document.querySelector('#login-button-loading');
     const input_password = document.querySelector('#input-password');
+
     login_button.addEventListener('click', async (event) => {
         event.preventDefault();
+        login_button.classList.add('hidden')
+        login_button_loading.classList.remove('hidden')
         const username = input_username.value;
         const password = input_password.value;
         const loginData = {
@@ -122,6 +128,8 @@
                 window.location.reload();
             })
         }
+        login_button.classList.remove('hidden')
+        login_button_loading.classList.add('hidden')
     });
 
 </script>
