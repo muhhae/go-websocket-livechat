@@ -35,7 +35,7 @@
     </template>
 
     <script>
-        var CONFIG = CONFIG || {};
+        var CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {};
         var API_URL = CONFIG.API_URL || 'http://localhost:8080';
         async function getUserData() {
             try {
