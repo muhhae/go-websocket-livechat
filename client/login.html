@@ -56,6 +56,11 @@
 </body>
 
 <script>
+    var currentUrl = window.location.href; // Get the current URL
+    var urlSegments = currentUrl.split('/'); // Split the URL into segments
+    urlSegments = urlSegments.slice(0, -1); // Remove the last segment
+    var newUrl = urlSegments.join('/'); // Join the segments back together
+
 
     const alert_position = () => {
         return window.matchMedia('(min-width: 640px)').matches ? 'center' : 'bottom';
@@ -117,7 +122,7 @@
                     confirmButtonText: 'Go to chat',
                     position: alert_position(),
                 }).then((result) => {
-                    window.location.href = "/client.html";
+                    window.location.href = newUrl + "/client.html";
                 })
             }
         }
