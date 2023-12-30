@@ -9,25 +9,17 @@
 </head>
 
 <body>
-
-    <!--
-      Welcome to Tailwind Play, the official Tailwind CSS playground!
-    
-      Everything here works just like it does when you're running Tailwind locally
-      with a real build pipeline. You can customize your config file, use features
-      like `@apply`, or even add third-party plugins.
-    
-      Feel free to play with this example if you're just learning, or trash it and
-      start from scratch if you know enough to be dangerous. Have fun!
-    -->
-    <div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-50 py-6 sm:py-12">
-        <div class="rounded-md relative flex flex-col bg-white p-2 shadow-xl ring-1 ring-gray-900/5 
+    <div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-900 py-6 sm:py-12">
+        <div class="rounded-md min-h-[90vh] relative flex flex-col bg-gray-700 p-4 shadow-xl ring-1 ring-gray-900/5 
             mx-8 sm:mx-auto sm:w-[60vh] h-[75vh]">
-            <div id="chat" class="overflow-y-auto bg-gray-800 flex-grow rounded-md"></div>
-            <form id="chatForm" class="flex mt-2">
+            <div id="chat-container"
+                class="p-4 overflow-y-auto scrollbar scrollbar-hide flex flex-col bg-gray-600 flex-grow rounded-md">
+                <div id="chat" class="flex flex-col flex-grow justify-end"> </div>
+            </div>
+            <form id="chatForm" class="flex mt-4">
                 <input type="text" placeholder="Your message" class="input 
-                input-bordered w-full" id="messageInput" />
-                <button type="submit" class="btn btn-active btn-neutral ml-2">Send</button>
+                input-bordered w-full placeholder-white" id="messageInput" />
+                <button class="btn ml-2 text-white border-0 ">Send</button>
             </form>
         </div>
     </div>
@@ -52,25 +44,27 @@
                 data = JSON.parse(event.data)
                 var date = new Date(data.date);
 
-                hour = date.getHours();
-                minute = date.getMinutes();
+                hour = date.getHours().toString().padStart(2, '0');
+                minute = date.getMinutes().toString().padStart(2, '0');
 
                 var chat_style = data.sender.username == username ? 'chat-end' : 'chat-start';
 
                 chat.innerHTML += `
-                    <div class="chat ${chat_style}">
+                    <div class="chat ${chat_style} ">
                         <div class="chat-header">
                             ${data.sender.username}
                             <time class="text-xs opacity-50">${hour}:${minute}</time>
                         </div>
-                        <div class="chat-bubble">
+                        <div class="chat-bubble break-words max-w-[40ch]">
                             ${data.message}
                         </div>
                         <div class="chat-footer opacity-50">
-                            <span class="material-icons-outlined">check</span>
+                            <span class="material-icons-outlined"></span>
                         </div>
                     </div>`
-                chat.scrollTop = chat.scrollHeight;
+
+                chatcontainer = document.getElementById('chat-container');
+                chatcontainer.scrollTop = chat.scrollHeight;
             };
 
             var form = document.getElementById('chatForm');
