@@ -76,7 +76,7 @@
                 })
             }
 
-            var ws = new WebSocket('ws://localhost:8080/ws');
+            var ws = new WebSocket('ws://' + API_URL + '/ws');
 
             ws.addEventListener('open', function (event) {
                 var body = document.getElementById('body-container');
