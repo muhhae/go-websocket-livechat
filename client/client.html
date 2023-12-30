@@ -35,6 +35,13 @@
     </template>
 
     <script>
+        var currentUrl = window.location.href; // Get the current URL
+        var urlSegments = currentUrl.split('/'); // Split the URL into segments
+        urlSegments = urlSegments.slice(0, -1); // Remove the last segment
+        var newUrl = urlSegments.join('/'); // Join the segments back together
+        function isSwalVisible() {
+            return document.querySelector('.swal2-popup') !== null;
+        }
         var CONFIG = typeof CONFIG !== 'undefined' ? CONFIG : {};
         var API_URL = CONFIG.API_URL || 'http://localhost:8080';
         async function getUserData() {
@@ -84,23 +91,27 @@
             });
 
             ws.addEventListener('close', function (event) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'Something went wrong!',
-                }).then((result) => {
-                    window.location.reload();
-                })
+                if (!isSwalVisible()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Something went wrong!',
+                    }).then((result) => {
+                        window.location.reload();
+                    })
+                }
             });
 
             ws.addEventListener('error', function (event) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'Something went wrong!',
-                }).then((result) => {
-                    window.location.reload();
-                })
+                if (!isSwalVisible()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Something went wrong!',
+                    }).then((result) => {
+                        window.location.reload();
+                    })
+                }
             });
 
             ws.onmessage = function (event) {

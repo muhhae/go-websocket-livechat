@@ -23,6 +23,8 @@ type Message struct {
 }
 
 var clients = make(map[*websocket.Conn]User)
+var messages = make([]Message, 0)
+
 var broadcast = make(chan Message)
 
 var upgrader = websocket.Upgrader{
@@ -73,6 +75,19 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 
 	clients[ws] = User{Username: username}
+	for _, msg := range messages {
+		messag, err := json.Marshal(msg)
+		if err != nil {
+			log.Println("Error marshalling message: ", err)
+			continue
+		}
+		err = ws.WriteMessage(websocket.TextMessage, []byte(messag))
+		if err != nil {
+			log.Println("Error writing message: ", err)
+			continue
+		}
+	}
+
 	for {
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
@@ -84,6 +99,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if trimmedMessage != "" {
 			message := Message{Sender: clients[ws], Message: trimmedMessage, Date: time.Now()}
 			broadcast <- message
+			messages = append(messages, message)
 		}
 	}
 }
