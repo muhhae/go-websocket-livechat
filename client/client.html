@@ -35,7 +35,8 @@
     </template>
 
     <script>
-        const API_URL = CONFIG.API_URL !== undefined ? CONFIG.API_URL : 'http://localhost:8080';
+        var CONFIG = CONFIG || {};
+        var API_URL = CONFIG.API_URL || 'http://localhost:8080';
         async function getUserData() {
             try {
                 const response = await fetch(API_URL + '/self', {

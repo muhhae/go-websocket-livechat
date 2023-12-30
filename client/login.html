@@ -78,7 +78,9 @@
             popup: 'bg-base-200'
         },
     })
-    const API_URL = CONFIG.API_URL !== undefined ? CONFIG.API_URL : 'http://localhost:8080';
+    var CONFIG = CONFIG || {};
+    var API_URL = CONFIG.API_URL !== undefined ? CONFIG.API_URL : 'http://localhost:8080';
+
     const input_username = document.querySelector('#input-username');
     const login_button = document.querySelector('#login-button');
     const login_button_loading = document.querySelector('#login-button-loading');
